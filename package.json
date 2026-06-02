@@ -1,0 +1,8 @@
+{
+  "name": "com.egorlin.uiwidgets",
+  "version": "1.0.0",
+  "displayName": "UI Widgets",
+  "description": "UI Framework",
+  "unity": "6000.3",
+  "dependencies": { }
+}
