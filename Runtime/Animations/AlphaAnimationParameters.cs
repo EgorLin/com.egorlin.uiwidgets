@@ -1,0 +1,103 @@
+﻿using EgorLin.UIWidgets.Pools;
+using UnityEngine;
+
+namespace EgorLin.UIWidgets.Animations {
+
+    [RequireComponent(typeof(CanvasGroup))]
+    public class AlphaAnimationParameters : AnimationParameters {
+
+        [System.Serializable]
+        public class AlphaState : State {
+
+            [Range(0f, 1f)] public float alpha;
+
+            public override void CopyFrom(State other) {
+
+                var _other = (AlphaState)other;
+                this.alpha = _other.alpha;
+
+            }
+
+            public override void Recycle() {
+
+                this.alpha = default;
+                PoolClass<AlphaState>.Recycle(this);
+                
+            }
+
+        }
+
+        [Space(10f)] public CanvasGroup canvasGroup;
+        public AlphaState resetState = new AlphaState() { alpha = 0f };
+        public AlphaState shownState = new AlphaState() { alpha = 1f };
+        public AlphaState hiddenState = new AlphaState() { alpha = 0f };
+
+        private readonly AlphaState currentState = new AlphaState();
+
+        public override void OnValidate() {
+
+            base.OnValidate();
+            if (this.canvasGroup == null) this.canvasGroup = this.GetComponent<CanvasGroup>();
+
+        }
+
+        public override State LerpState(State from, State to, float value) {
+
+            var toState = (AlphaState)to;
+            if (from != null) {
+
+                var fromState = (AlphaState)from;
+                this.currentState.alpha = Mathf.Lerp(fromState.alpha, toState.alpha, value);
+
+            } else {
+
+                this.currentState.alpha = Mathf.Lerp(this.currentState.alpha, toState.alpha, value);
+
+            }
+
+            return this.currentState;
+
+        }
+
+        public override void ApplyState(State state) {
+
+            var toState = (AlphaState)state;
+            if (this.canvasGroup != null) this.canvasGroup.alpha = toState.alpha;
+
+            this.currentState.CopyFrom(state);
+
+        }
+
+        public override State CreateState() {
+            
+            return PoolClass<AlphaState>.Spawn();
+            
+        }
+
+        public override State GetCurrentState() {
+
+            return this.currentState;
+
+        }
+
+        public override State GetResetState() {
+
+            return this.resetState;
+
+        }
+
+        public override State GetInState() {
+
+            return this.shownState;
+
+        }
+
+        public override State GetOutState() {
+
+            return this.hiddenState;
+
+        }
+
+    }
+
+}

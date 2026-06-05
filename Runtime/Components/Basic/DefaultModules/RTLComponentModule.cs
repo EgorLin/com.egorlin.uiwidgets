@@ -1,0 +1,43 @@
+﻿using EgorLin.UIWidgets.Components.Base;
+using EgorLin.UIWidgets.Core;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace EgorLin.UIWidgets.Components.Basic.DefaultModules {
+
+    public class RTLComponentModule : WindowComponentModule {
+
+        public HorizontalOrVerticalLayoutGroup layoutGroup;
+        [HideInInspector]
+        public bool defaultAlignment;
+
+        public override void ValidateEditor() {
+            base.ValidateEditor();
+            if (this.layoutGroup == null) this.layoutGroup = this.GetComponentInChildren<HorizontalOrVerticalLayoutGroup>(true);
+            if (this.layoutGroup != null) this.defaultAlignment = this.layoutGroup.reverseArrangement;
+        }
+
+        public override void OnShowBegin() {
+            base.OnShowBegin();
+            this.UpdateRTL();
+        }
+
+        public override void OnLayoutChanged() {
+            base.OnLayoutChanged();
+            this.UpdateRTL();
+        }
+
+        public override void OnEvent<T>(T data) {
+            base.OnEvent(data);
+            if (data is RTLModeChangedEvent) {
+                this.UpdateRTL();
+            }
+        }
+
+        private void UpdateRTL() {
+            this.layoutGroup.reverseArrangement = WindowSystem.IsRTL() == true ? !this.defaultAlignment : this.defaultAlignment;
+        }
+
+    }
+    
+}

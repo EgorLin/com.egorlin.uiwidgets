@@ -1,0 +1,173 @@
+﻿using EgorLin.UIWidgets.Components.Basic.Base;
+using EgorLin.UIWidgets.Core;
+using UnityEngine;
+
+namespace EgorLin.UIWidgets.Components.Basic.ButtonModules {
+
+    public class ButtonLongPressComponentModule : ButtonComponentModule, UnityEngine.EventSystems.IPointerDownHandler, UnityEngine.EventSystems.IPointerUpHandler {
+
+        public float pressTime = 2f;
+        public ProgressComponent progressComponent;
+
+        public bool hideShowProgress = true;
+        [Header("Use long press via callback, not by overriding RaiseClick()")]
+        public bool callbackMode;
+
+        [Header("Don't cleanup short press callback, when callbackMode is `true`")]
+        public bool preserveShortPressCallback;
+
+        private float pressTimer;
+        private bool isPressed;
+
+        private CallbackRegistries callbackRegistries;
+        private CallbackRegistries callbackOnBreakRegistries;
+        
+		public override void ValidateEditor() {
+
+            base.ValidateEditor();
+
+            if (this.progressComponent != null && this.hideShowProgress == true) {
+                
+                this.progressComponent.hiddenByDefault = true;
+                
+            }
+
+        }
+
+		public override void OnHideBegin() {
+			base.OnHideBegin();
+			this.isPressed = false;
+		}
+
+		public override void OnDeInit() {
+
+			base.OnDeInit();
+
+			this.RemoveAllCallbacks();
+			this.callbackRegistries.DeInitialize();
+			this.callbackOnBreakRegistries.DeInitialize();
+
+		}
+
+		public void SetCallback(System.Action callback) {
+			this.callbackRegistries.Clear();
+			this.callbackRegistries.Add(callback);
+		}
+
+		public CallbackHandler AddCallback(System.Action callback) => this.callbackRegistries.Add(callback);
+		public void RemoveCallback(CallbackHandler callback) => this.callbackRegistries.Remove(callback);
+
+		public void SetCallback<T>(T data, System.Action<T> callback) {
+			this.callbackRegistries.Clear();
+			this.callbackRegistries.Add(data, callback);
+		}
+		
+		public CallbackHandler AddCallback<T>(T data, System.Action<T> callback) => this.callbackRegistries.Add(data, callback);
+		
+		public void SetOnBreakCallback(System.Action callback) {
+			this.callbackOnBreakRegistries.Clear();
+			this.callbackOnBreakRegistries.Add(callback);
+		}
+
+		public CallbackHandler AddOnBreakCallback(System.Action callback) => this.callbackOnBreakRegistries.Add(callback);
+		public void RemoveOnBreakCallback(CallbackHandler callback) => this.callbackOnBreakRegistries.Remove(callback);
+
+		public void SetOnBreakCallback<T>(T data, System.Action<T> callback) {
+			this.callbackOnBreakRegistries.Clear();
+			this.callbackOnBreakRegistries.Add(data, callback);
+		}
+		
+		public CallbackHandler AddOnBreakCallback<T>(T data, System.Action<T> callback) => this.callbackOnBreakRegistries.Add(data, callback);
+		
+		public void RemoveAllCallbacks() {
+
+			this.callbackRegistries.Clear();
+			this.callbackOnBreakRegistries.Clear();
+
+		}
+
+		public override void OnInit() {
+            
+            base.OnInit();
+
+            this.callbackRegistries.Initialize();
+            this.callbackOnBreakRegistries.Initialize();
+            
+            if (this.callbackMode == false) {
+
+	            this.buttonComponent.button.onClick.RemoveAllListeners();
+
+            }
+
+		}
+
+        public void LateUpdate() {
+
+	        if (this.isPressed == false) return;
+
+	        var dt = Time.realtimeSinceStartup - this.pressTimer;
+
+			if (this.progressComponent != null) {
+
+                this.progressComponent.SetNormalizedValue(dt / this.pressTime);
+                
+            }
+
+            if (this.callbackMode == true && dt > this.pressTime) {
+
+	            if (this.preserveShortPressCallback == false) {
+		            this.callbackOnBreakRegistries.Clear();
+	            }
+	            this.callbackRegistries.Invoke();
+	            this.isPressed = false;
+
+            }
+
+		}
+
+		public void OnPointerDown(UnityEngine.EventSystems.PointerEventData eventData) {
+
+            if (this.isActiveAndEnabled == false) return;
+
+			this.isPressed = true;
+            this.pressTimer = Time.realtimeSinceStartup;
+
+            if (this.progressComponent != null) {
+                
+                if (this.hideShowProgress == true) this.progressComponent.Show();
+                this.progressComponent.SetNormalizedValue(0f);
+                
+            }
+
+        }
+        
+        public void OnPointerUp(UnityEngine.EventSystems.PointerEventData eventData) {
+
+	        var isLongPressFired = this.isPressed == false;
+            this.isPressed = false;
+
+            if (this.progressComponent != null) {
+	            if (this.hideShowProgress == true) {
+		            this.progressComponent.Hide();
+	            } else {
+		            this.progressComponent.SetNormalizedValue(0f);
+	            }
+            }
+
+            if (this.preserveShortPressCallback == false || isLongPressFired == false) {
+	            this.callbackOnBreakRegistries.Invoke();
+            }
+            
+            if (this.callbackMode == true) return;
+
+            if (Time.realtimeSinceStartup - this.pressTimer >= this.pressTime) {
+
+                this.buttonComponent.RaiseClick();
+
+            }
+            
+        }
+
+    }
+
+}

@@ -1,0 +1,34 @@
+[Help("Sample Console Module")]
+[Alias("s")]
+public class Sample : ConsoleModule {
+
+    [Help("Prints test bool")]
+    public void Test(bool a) {
+
+        Debug.Log("Test: " + a);
+
+    }
+
+    public void Test() {
+
+        Debug.Log("Test");
+
+    }
+
+    [Help("Prints test string with int a")]
+    [FastLink("Samples/Test1")]
+    public void Test(int a) {
+
+        Debug.Log("Test: " + a);
+
+    }
+
+    [Help("Prints test string with int a and float b")]
+    [FastLink("Samples/Test2")]
+    public void Test(int a, float b) {
+
+        Debug.Log("Test: " + a + " :: " + b);
+
+    }
+
+}

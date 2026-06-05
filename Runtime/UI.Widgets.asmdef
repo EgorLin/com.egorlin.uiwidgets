@@ -1,0 +1,25 @@
+{
+    "name": "UI.Widgets",
+    "rootNamespace": "EgorLin.UIWidgets",
+    "references": [
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "Unity.Localization",
+        "UnityEngine.UI",
+        "Unity.Burst",
+        "Unity.Collections",
+        "FMODUnity",
+        "com.egorlin.keys"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

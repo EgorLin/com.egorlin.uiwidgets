@@ -1,0 +1,196 @@
+using EgorLin.UIWidgets.Components.Base;
+using EgorLin.UIWidgets.Core.Base;
+using EgorLin.UIWidgets.Essentials.Tutorial.Runtime.ComponentModules;
+using UnityEngine;
+
+namespace EgorLin.UIWidgets.Essentials.Tutorial.Runtime.Core {
+
+    public enum ConditionResult {
+
+        Success,
+        Failed,
+
+    }
+
+    public enum ActionResult {
+
+        MoveNext,
+        Break,
+
+    }
+
+    public interface IConditionRuntime {
+
+        string runtimeText { get; }
+
+    }
+    
+    public interface ICondition {
+
+        string text { get; }
+
+        ConditionResult IsValid(in Context context);
+
+    }
+
+    public interface IAction {
+
+        string text { get; }
+
+        ActionResult Execute(in Context context);
+
+    }
+
+    public enum ConditionValue {
+
+        EqualsTo,
+        NotEqualsTo,
+        LessThan,
+        GreaterThan,
+        LessOrEqualsThan,
+        GreaterOrEqualsThan,
+
+    }
+
+    public struct ConditionValueChecker {
+
+        private ConditionValue conditionValue;
+        private int checkValue;
+        private int value;
+
+        public ConditionValueChecker(ConditionValue conditionValue, int value, int checkValue) {
+            
+            this.conditionValue = conditionValue;
+            this.checkValue = checkValue;
+            this.value = value;
+            
+        }
+
+        public bool GetResult() {
+
+            if (this.conditionValue == ConditionValue.EqualsTo) {
+                
+                return this.value == this.checkValue;
+
+            } else if (this.conditionValue == ConditionValue.NotEqualsTo) {
+                
+                return this.value != this.checkValue;
+
+            } else if (this.conditionValue == ConditionValue.LessThan) {
+                
+                return this.checkValue < this.value;
+
+            } else if (this.conditionValue == ConditionValue.GreaterThan) {
+                
+                return this.checkValue > this.value;
+
+            } else if (this.conditionValue == ConditionValue.LessOrEqualsThan) {
+                
+                return this.checkValue <= this.value;
+
+            } else if (this.conditionValue == ConditionValue.GreaterOrEqualsThan) {
+                
+                return this.checkValue >= this.value;
+
+            }
+            
+            return false;
+            
+        }
+
+    }
+    
+    [System.Serializable]
+    public struct WindowType {
+
+        public string guid;
+        public string type;
+
+    }
+    
+    [System.Serializable]
+    public struct Conditions {
+        
+        [SerializeReference]
+        public ICondition[] items;
+        
+    }
+
+    [System.Serializable]
+    public struct Actions {
+        
+        [SerializeReference]
+        public IAction[] items;
+        
+    }
+
+    [CreateAssetMenu(menuName = "UI.Windows/Tutorial/Data")]
+    public class TutorialData : ScriptableObject {
+
+        public WindowType forWindowType;
+        public TutorialWindowEvent startEvent;
+        public string uiTag;
+        
+        public Conditions conditions;
+        public Actions actions;
+
+        public bool IsValid(WindowObject window, in Context context, bool checkType = true) {
+            
+            var type = window != null ? Utilities.TypesCache.GetFullName(window.GetType()) : null;
+            if (checkType == false || this.forWindowType.type == type || type == null) {
+
+                if (this.IsValidTag(in context) == false) return false;
+                
+                for (int i = 0; i < this.conditions.items.Length; ++i) {
+
+                    if (this.conditions.items[i].IsValid(in context) == ConditionResult.Failed) return false;
+
+                }
+
+                return true;
+
+            }
+
+            return false;
+
+        }
+
+        private bool IsValidTag(in Context context) {
+
+            if (string.IsNullOrEmpty(this.uiTag) == true) return true;
+            
+            var obj = context.window as WindowComponent;
+            if (obj == null) return false;
+            var module = obj.GetModule<TutorialWindowComponentTagComponentModule>();
+            if (module != null) {
+                if (module.uiTag == this.uiTag) return true;
+            }
+
+            return false;
+
+        }
+
+        public void RunActions(Context context, int startIndex) {
+            
+            for (int i = startIndex; i < this.actions.items.Length; ++i) {
+
+                context.index = i;
+                if (this.actions.items[i].Execute(in context) == ActionResult.Break) {
+                    
+                    break;
+                    
+                }
+
+            }
+
+        }
+
+        public void OnStart(Context context) {
+
+            this.RunActions(context, 0);
+            
+        }
+
+    }
+
+}

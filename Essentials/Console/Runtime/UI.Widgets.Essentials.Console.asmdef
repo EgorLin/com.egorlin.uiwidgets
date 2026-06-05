@@ -1,0 +1,20 @@
+{
+    "name": "UI.Widgets.Essentials.Console",
+    "rootNamespace": "EgorLin.UIWidgets",
+    "references": [
+        "UI.Widgets",
+        "Unity.Localization",
+        "Unity.InputSystem",
+        "UnityEngine.UI",
+        "Unity.Collections"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

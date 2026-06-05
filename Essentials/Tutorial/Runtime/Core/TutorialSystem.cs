@@ -1,0 +1,205 @@
+using System.Collections.Generic;
+using System.Linq;
+using EgorLin.UIWidgets.Core;
+using EgorLin.UIWidgets.Core.Base;
+using EgorLin.UIWidgets.Essentials.Tutorial.Runtime.Modules;
+using UnityEngine;
+
+namespace EgorLin.UIWidgets.Essentials.Tutorial.Runtime.Core {
+
+    public enum TutorialWindowEvent {
+
+        OnInitialize,
+        OnShowBegin,
+        OnShowEnd,
+        OnFocusTook,
+        OnHideBegin,
+        OnFocusLost,
+        OnHideEnd,
+        
+        OnAny,
+
+    }
+
+    [System.Serializable]
+    public struct Tag {
+
+        public int id;
+        public bool isList;
+        public int listIndex;
+
+    }
+
+    [System.Serializable]
+    public struct TagComponent {
+
+        public string uiTag;
+        public bool isList;
+        public int listIndex;
+        public bool ignoreSearch;
+
+        public override string ToString() {
+            if (this.isList == true) {
+                return $"List tag {this.uiTag} element index {this.listIndex}";
+            }
+            return $"{this.uiTag}";
+        }
+
+    }
+
+    public struct Context {
+
+        public TutorialWindowEvent windowEvent;
+        public TutorialSystem system;
+        public TutorialData data;
+        public int index;
+        public WindowObject window;
+
+    }
+
+    [CreateAssetMenu(menuName = "UI.Windows/Tutorial/System Module")]
+    public class TutorialSystem : WindowSystemModule {
+
+        public List<TutorialData> currentTutorialItems;
+        public List<TutorialData> itemsExecutedByName;
+        public bool useDebugLogs;
+        
+        public override void OnStart() {
+
+            var events = WindowSystem.GetEvents();
+            events.Register(WindowEvent.OnInitialized, this.OnWindowInitialized);
+            events.Register(WindowEvent.OnShowBegin, this.OnWindowShowBegin);
+            events.Register(WindowEvent.OnShowEnd, this.OnWindowShowEnd);
+            events.Register(WindowEvent.OnFocusTook, this.OnWindowFocusTook);
+            events.Register(WindowEvent.OnFocusLost, this.OnWindowFocusLost);
+            events.Register(WindowEvent.OnHideBegin, this.OnWindowHideBegin);
+            events.Register(WindowEvent.OnHideEnd, this.OnWindowHideEnd);
+            
+        }
+
+        public override void OnDestroy() {
+
+            var events = WindowSystem.GetEvents();
+            
+            if (events == null) return;
+            
+            events.UnRegister(WindowEvent.OnInitialized, this.OnWindowInitialized);
+            events.UnRegister(WindowEvent.OnShowBegin, this.OnWindowShowBegin);
+            events.UnRegister(WindowEvent.OnShowEnd, this.OnWindowShowEnd);
+            events.UnRegister(WindowEvent.OnFocusTook, this.OnWindowFocusTook);
+            events.UnRegister(WindowEvent.OnFocusLost, this.OnWindowFocusLost);
+            events.UnRegister(WindowEvent.OnHideBegin, this.OnWindowHideBegin);
+            events.UnRegister(WindowEvent.OnHideEnd, this.OnWindowHideEnd);
+
+        }
+
+        private void OnWindowInitialized(WindowObject window) {
+
+            this.OnWindowEvent(window, TutorialWindowEvent.OnInitialize);
+
+        }
+
+        private void OnWindowShowBegin(WindowObject window) {
+
+            this.OnWindowEvent(window, TutorialWindowEvent.OnShowBegin);
+
+        }
+
+        private void OnWindowShowEnd(WindowObject window) {
+
+            this.OnWindowEvent(window, TutorialWindowEvent.OnShowEnd);
+
+        }
+
+        private void OnWindowFocusTook(WindowObject window) {
+
+            this.OnWindowEvent(window, TutorialWindowEvent.OnFocusTook);
+
+        }
+
+        private void OnWindowFocusLost(WindowObject window) {
+
+            this.OnWindowEvent(window, TutorialWindowEvent.OnFocusLost);
+
+        }
+
+        private void OnWindowHideBegin(WindowObject window) {
+            
+            this.OnWindowEvent(window, TutorialWindowEvent.OnHideBegin);
+            
+        }
+
+        private void OnWindowHideEnd(WindowObject window) {
+            
+            this.OnWindowEvent(window, TutorialWindowEvent.OnHideEnd);
+            
+        }
+
+        private void OnWindowEvent(WindowObject window, TutorialWindowEvent windowEvent) {
+
+            TutorialModule tutorialModule = null;
+            if (window is WindowBase windowBase) {
+                tutorialModule = windowBase.modules.Get<TutorialModule>();
+            }
+
+            if (tutorialModule != null) {
+
+                var tutorialData = tutorialModule.data.Load(tutorialModule);
+                this.TryToStart(window, tutorialData, windowEvent);
+
+            } else {
+                
+                foreach (var item in this.currentTutorialItems) {
+
+                    this.TryToStart(window, item, windowEvent);
+
+                }
+
+            }
+
+        }
+
+        public bool TryToStart(WindowObject window, TutorialData tutorialData, TutorialWindowEvent windowEvent, bool checkType = true) {
+
+            if (tutorialData == null) return false;
+
+            if (tutorialData.startEvent == windowEvent || windowEvent == TutorialWindowEvent.OnAny) {
+
+                var context = new Context() {
+                    system = this,
+                    window = window,
+                    windowEvent = windowEvent,
+                    data = tutorialData,
+                };
+                if (tutorialData.IsValid(window, in context, checkType) == true) {
+
+                    if (this.useDebugLogs == true) Debug.Log($"[TutorialSystem] {tutorialData.name} started for window `{Utilities.TypesCache.GetFullName(window.GetType())}`");
+                    tutorialData.OnStart(context);
+                    if (this.useDebugLogs == true) Debug.Log($"[TutorialSystem] {tutorialData.name} finished for window `{Utilities.TypesCache.GetFullName(window.GetType())}`");
+                    return true;
+
+                }
+
+            }
+
+            return false;
+
+        }
+
+        public void ExecuteByName(string tutorialName) {
+            
+            var tutorialData = this.itemsExecutedByName.FirstOrDefault(i => i.name == tutorialName);
+            if (tutorialData == null) return;
+            WindowBase instance = null;
+            if (string.IsNullOrEmpty(tutorialData.forWindowType.type) == false) {
+                var windowItem = WindowSystem.GetCurrentOpened().FirstOrDefault(i => Utilities.TypesCache.GetFullName(i.instance.GetType()) == tutorialData.forWindowType.type);
+                if (windowItem.instance == null) return;
+                instance = windowItem.instance;
+            }
+            this.TryToStart(instance, tutorialData, tutorialData.startEvent);
+            
+        }
+
+    }
+
+}

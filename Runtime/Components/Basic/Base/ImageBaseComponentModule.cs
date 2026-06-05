@@ -1,0 +1,40 @@
+﻿using EgorLin.UIWidgets.Components.Base;
+using UnityEngine;
+
+namespace EgorLin.UIWidgets.Components.Basic.Base {
+
+    public abstract class ImageComponentModule : WindowComponentModule {
+
+        public ImageComponent imageComponent;
+
+        public override void ValidateEditor() {
+            
+            base.ValidateEditor();
+            
+            this.imageComponent = this.windowComponent as ImageComponent;
+            
+        }
+
+        public virtual void SetImage(Sprite prevSprite, Sprite newSprite) {
+            
+        }
+
+        public virtual void SetImage(Texture prevTexture, Texture newTexture) {
+            
+        }
+
+        public virtual void SetImage<TClosure>(TClosure closure, Sprite prevSprite, Sprite newSprite, System.Action<TClosure, Sprite> onFinished) {
+            onFinished?.Invoke(closure, newSprite);
+        }
+
+        public virtual void SetImage<TClosure>(TClosure closure, Texture prevTexture, Texture newTexture, System.Action<TClosure, Texture> onFinished) {
+            onFinished?.Invoke(closure, newTexture);
+        }
+
+        public virtual void OnSetColor(Color color) { }
+
+        public virtual void OnSetMaterial(Material material) { }
+
+    }
+    
+}

@@ -1,0 +1,22 @@
+{
+    "name": "UI.Widgets.Editor",
+    "rootNamespace": "EgorLin.UIWidgets",
+    "references": [
+        "UI.Widgets",
+        "Unity.Addressables.Editor",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.ResourceManager"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

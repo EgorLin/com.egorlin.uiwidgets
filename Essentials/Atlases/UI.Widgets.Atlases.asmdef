@@ -1,0 +1,17 @@
+{
+    "name": "UI.Widgets.Atlases",
+    "rootNamespace": "EgorLin.UIWidgets",
+    "references": [
+        "UI.Widgets",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

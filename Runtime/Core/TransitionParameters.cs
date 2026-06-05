@@ -1,0 +1,146 @@
+namespace EgorLin.UIWidgets.Core {
+
+    [System.Flags]
+    public enum HideBehaviour {
+
+        Simultaneously = 0,
+        WaitForChild = 1 << 0,
+        OneByOne = 1 << 1,
+
+    }
+
+    public enum ShowBehaviour {
+
+        Simultaneously,
+        OneByOne,
+
+    }
+
+    [System.Serializable]
+    public struct TransitionParametersData {
+
+        internal bool resetAnimation;
+        internal bool immediately;
+        
+        internal bool replaceDelay;
+        internal float delay;
+
+        internal bool replaceAffectChilds;
+        internal bool affectChilds;
+
+        internal bool replaceIgnoreTouch;
+        internal bool ignoreTouch;
+
+        internal bool replaceHideBehaviour;
+        internal HideBehaviour hideBehaviour;
+
+        internal bool replaceShowBehaviour;
+        internal ShowBehaviour showBehaviour;
+
+        internal System.Action callback;
+        internal System.Action<object> callbackUserData;
+
+        internal object userData;
+
+    }
+
+    [System.Serializable]
+    public struct TransitionParameters {
+
+        internal TransitionParametersData data;
+
+        public static TransitionParameters Default => new TransitionParameters() {
+            data = new TransitionParametersData() { resetAnimation = false },
+        };
+
+        public void RaiseCallback() {
+
+            if (this.data.callback != null) this.data.callback.Invoke();
+            if (this.data.callbackUserData != null) this.data.callbackUserData.Invoke(this.data.userData);
+
+        }
+
+        public TransitionParameters ReplaceIgnoreTouch(bool state) {
+
+            var instance = this;
+            instance.data.replaceIgnoreTouch = true;
+            instance.data.ignoreTouch = state;
+            return instance;
+
+        }
+
+        public TransitionParameters ReplaceAffectChilds(bool state) {
+
+            var instance = this;
+            instance.data.replaceAffectChilds = true;
+            instance.data.affectChilds = state;
+            return instance;
+
+        }
+
+        public TransitionParameters ReplaceResetAnimation(bool state) {
+
+            var instance = this;
+            instance.data.resetAnimation = state;
+            return instance;
+
+        }
+
+        public TransitionParameters ReplaceHideBehaviour(HideBehaviour state) {
+
+            var instance = this;
+            instance.data.replaceHideBehaviour = true;
+            instance.data.hideBehaviour = state;
+            return instance;
+
+        }
+
+        public TransitionParameters ReplaceShowBehaviour(ShowBehaviour state) {
+
+            var instance = this;
+            instance.data.replaceShowBehaviour = true;
+            instance.data.showBehaviour = state;
+            return instance;
+
+        }
+
+        public TransitionParameters ReplaceImmediately(bool state) {
+
+            var instance = this;
+            instance.data.immediately = state;
+            return instance;
+
+        }
+
+        public TransitionParameters ReplaceDelay(float value) {
+
+            var instance = this;
+            instance.data.delay = value;
+            instance.data.replaceDelay = value > 0f;
+            return instance;
+
+        }
+
+        public TransitionParameters ReplaceCallback(System.Action callback) {
+
+            var instance = this;
+            instance.data.callback = callback;
+            instance.data.callbackUserData = null;
+            instance.data.userData = null;
+            return instance;
+
+        }
+
+        public TransitionParameters ReplaceCallback(object userData, System.Action<object> callback) {
+
+            var instance = this;
+            instance.data.callback = null;
+            instance.data.callbackUserData = callback;
+            instance.data.userData = userData;
+            return instance;
+
+        }
+
+    }
+    
+}

@@ -1,0 +1,617 @@
+﻿using System.Collections.Generic;
+using EgorLin.UIWidgets.Attirbutes;
+using EgorLin.UIWidgets.Components.Base;
+using EgorLin.UIWidgets.Components.Basic.ListModules;
+using EgorLin.UIWidgets.Components.Basic.ListModules.Base;
+using EgorLin.UIWidgets.Core;
+using EgorLin.UIWidgets.Core.Base;
+using EgorLin.UIWidgets.Modules;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace EgorLin.UIWidgets.Components.Basic.Base {
+    public interface IListClosureParameters {
+
+        int index { get; set; }
+
+    }
+
+    public interface IListItemClosureParameters<T> : IListClosureParameters {
+
+        T data { get; set; }
+
+    }
+
+    public abstract partial class ListBaseComponent : WindowComponent, ILayoutSelfController {
+
+        [ResourceType(typeof(WindowComponent), RequiredType.Warning)]
+        public Resource source;
+        public Transform customRoot;
+        public ScrollRect scrollRect;
+
+        public List<WindowComponent> items = new List<WindowComponent>();
+        private readonly HashSet<Object> loadedAssets = new HashSet<Object>();
+        private System.Action onElementsChangedCallback;
+        private System.Action onLayoutChangedCallback;
+        private bool layoutHasChanged;
+
+        [SerializeField]
+        internal ListRectTransformChangedInternal listRectTransformChangedInternal;
+
+        private void ValidateEditorRectTransformInternal() {
+
+            if (this.listRectTransformChangedInternal != null && this.listRectTransformChangedInternal.listBaseComponent == null) {
+
+                this.listRectTransformChangedInternal.listBaseComponent = this;
+                this.listRectTransformChangedInternal.hideFlags = HideFlags.HideInInspector;
+
+            }
+            
+            if (this.listRectTransformChangedInternal == null) {
+
+                var tr = this.customRoot;
+                if (tr == null) tr = this.transform;
+                this.listRectTransformChangedInternal = tr.gameObject.AddComponent<ListRectTransformChangedInternal>();
+                this.listRectTransformChangedInternal.listBaseComponent = this;
+                this.listRectTransformChangedInternal.hideFlags = HideFlags.HideInInspector;
+
+            } else {
+
+                var tr = this.customRoot;
+                if (tr == null) tr = this.transform;
+                if (this.listRectTransformChangedInternal.transform != tr) {
+                    
+                    Object.DestroyImmediate(this.listRectTransformChangedInternal);
+                    this.listRectTransformChangedInternal = null;
+                    this.ValidateEditorRectTransformInternal();
+
+                }
+                
+            }
+
+        }
+        
+        #if UNITY_EDITOR
+        public override void ValidateEditor() {
+            
+            base.ValidateEditor();
+
+            this.ValidateEditorRectTransformInternal();
+
+            if (this.scrollRect == null) {
+                this.scrollRect = this.GetComponentInChildren<ScrollRect>(true);
+            }
+            
+            var editorObj = this.source.GetEditorRef<WindowComponent>();
+            if (editorObj != null) {
+            
+                if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(editorObj) == false) {
+
+                    editorObj.allowRegisterInRoot = false;
+                    editorObj.AddEditorParametersRegistry(new EditorParametersRegistry(this) {
+                        holdAllowRegisterInRoot = true,
+                    });
+
+                    editorObj.gameObject.SetActive(false);
+
+                }
+
+            }
+            
+        }
+        #endif
+
+        void ILayoutController.SetLayoutHorizontal() {
+
+            this.OnLayoutChanged();
+
+        }
+
+        void ILayoutController.SetLayoutVertical() {
+            
+            this.OnLayoutChanged();
+            
+        }
+
+        internal void ForceLayoutChange() {
+            
+            this.OnLayoutChanged();
+            
+        }
+        
+        public int Count {
+            get {
+                return this.items.Count;
+            }
+        }
+
+        protected virtual void OnLayoutChanged() {
+
+            this.layoutHasChanged = true;
+            if (this.onLayoutChangedCallback != null) this.onLayoutChangedCallback.Invoke();
+
+        }
+
+        public void SetOnLayoutChangedCallback(System.Action callback) {
+
+            this.onLayoutChangedCallback = callback;
+
+        }
+        
+        public void SetOnElementsCallback(System.Action callback) {
+
+            this.onElementsChangedCallback = callback;
+
+        }
+        
+        public override void OnDeInit() {
+            
+            base.OnDeInit();
+
+            this.ResetInstance();
+
+        }
+        
+        public virtual void LateUpdate() {
+
+            if (this.layoutHasChanged == true) {
+
+                this.layoutHasChanged = false;
+                this.componentModules.OnLayoutChanged();
+
+            }
+
+        }
+
+        private void ResetInstance() {
+            
+            this.onElementsChangedCallback = null;
+            this.onLayoutChangedCallback = null;
+            
+            var resources = WindowSystem.GetResources();
+            foreach (var asset in this.loadedAssets) {
+            
+                resources.Delete(this, asset);
+
+            }
+            this.loadedAssets.Clear();
+
+        }
+
+        public Transform GetRoot() {
+
+            if (this.customRoot != null) return this.customRoot;
+            
+            return this.transform;
+
+        }
+
+        public virtual void Clear() {
+
+            this.RemoveRange(0, this.items.Count);
+            
+        }
+        
+        public void RemoveRange(int from, int to) {
+            
+            var pools = WindowSystem.GetPools();
+            for (int i = to - 1; i >= from; --i) {
+
+                this.UnRegisterSubObject(this.items[i]);
+                pools.Despawn(this.items[i]);
+                this.NotifyModulesComponentRemoved(this.items[i]);
+                
+            }
+            this.items.RemoveRange(from, to - from);
+            this.OnElementsChanged();
+
+        }
+        
+        public virtual void OnElementsChanged() {
+
+            for (int i = 0; i < this.componentModules.modules.Length; ++i) {
+
+                var module = this.componentModules.modules[i] as ListComponentModule;
+                if (module == null) continue;
+                
+                module.OnComponentsChanged();
+
+            }
+            
+            if (this.onElementsChangedCallback != null) this.onElementsChangedCallback.Invoke();
+            
+        }
+        
+        public virtual T GetItem<T>(int index) where T : WindowComponent {
+
+            return this.items[index] as T;
+
+        }
+        
+        public virtual void AddItem(System.Action<WindowComponent, DefaultParameters> onComplete = null) {
+            
+            this.AddItem(this.source, new DefaultParameters(), onComplete);
+            
+        }
+
+        public virtual void AddItem<T>(Resource source, System.Action<T, DefaultParameters> onComplete = null) where T : WindowComponent {
+            
+            this.AddItem(source, new DefaultParameters(), onComplete);
+            
+        }
+
+        public virtual void AddItem<T>(System.Action<T, DefaultParameters> onComplete = null) where T : WindowComponent {
+            
+            this.AddItem(this.source, new DefaultParameters(), onComplete);
+            
+        }
+
+        public virtual void AddItem<T, TClosure>(Resource source, TClosure closure, System.Action<T, TClosure> onComplete) where T : WindowComponent where TClosure : IListClosureParameters {
+
+            this.AddItemInternal(source, closure, onComplete);
+
+        }
+
+        public virtual WindowComponent AddItemSync() {
+            
+            return this.AddItemSyncInternal<WindowComponent>(this.source);
+            
+        }
+
+        public virtual T AddItemSync<T>() where T : WindowComponent {
+
+            return this.AddItemSyncInternal<T>(this.source);
+
+        }
+
+        public virtual T AddItemSync<T>(Resource source) where T : WindowComponent {
+
+            return this.AddItemSyncInternal<T>(source);
+
+        }
+
+        private struct AddItemClosure<T, TClosure> {
+
+            public TClosure data;
+            public System.Action<T, TClosure> onComplete;
+            public ListBaseComponent component;
+
+        }
+
+        private static T SetupLoadedAsset<T, TClosure>(T asset, AddItemClosure<T, TClosure> innerClosure) where T : WindowComponent where TClosure : IListClosureParameters {
+            
+            if (innerClosure.component == null ||
+                innerClosure.component.GetState() >= ObjectState.DeInitialized) {
+                
+                WindowSystem.GetResources().DeleteAll(innerClosure.component);
+                return null;
+                
+            }
+            
+            if (innerClosure.component.loadedAssets.Contains(asset) == false) {
+                
+                if (asset.createPool == true) WindowSystem.GetPools().CreatePool(asset);
+                innerClosure.component.loadedAssets.Add(asset);
+                
+            }
+            
+            var pools = WindowSystem.GetPools();
+            var instance = pools.Spawn(asset, innerClosure.component.GetRoot());
+            innerClosure.data.index = innerClosure.component.items.Count;
+            #if UNITY_EDITOR
+            var profileMarker = new Unity.Profiling.ProfilerMarker("ListComponentBase::AddItemInternal::SetItemName (Editor Only)");
+            profileMarker.Begin();
+            instance.name = $"{asset.name}_{innerClosure.data.index}";
+            profileMarker.End();
+            #endif
+            innerClosure.component.RegisterSubObject(instance);
+            innerClosure.component.items.Add(instance);
+            innerClosure.component.NotifyModulesComponentAdded(instance);
+            innerClosure.component.OnElementsChanged();
+            if (innerClosure.onComplete != null) innerClosure.onComplete.Invoke(instance, innerClosure.data);
+            
+            return instance;
+
+        }
+
+        internal T AddItemSyncInternal<T>(Resource source) where T : WindowComponent {
+            
+            var resources = WindowSystem.GetResources();
+            var data = new AddItemClosure<T, DefaultParameters>() {
+                data = new DefaultParameters(),
+                component = this,
+            };
+            var asset = resources.Load<T>(this, source);
+            return ListBaseComponent.SetupLoadedAsset(asset, data);
+            
+        }
+
+        internal void AddItemInternal<T, TClosure>(Resource source, TClosure closure, System.Action<T, TClosure> onComplete) where T : WindowComponent where TClosure : IListClosureParameters {
+            
+            var resources = WindowSystem.GetResources();
+            var data = new AddItemClosure<T, TClosure>() {
+                data = closure,
+                onComplete = onComplete,
+                component = this,
+            };
+            resources.LoadAsync<T, AddItemClosure<T, TClosure>>(this, data, source, static (asset, innerClosure) => {
+                ListBaseComponent.SetupLoadedAsset(asset, innerClosure);
+            });
+
+        }
+
+        public virtual void RemoveAt(int index) {
+            if (index < this.items.Count) {
+                this.UnRegisterSubObject(this.items[index]);
+                this.NotifyModulesComponentRemoved(this.items[index]);
+                this.items.RemoveAt(index);
+                this.OnElementsChanged();
+                WindowSystem.GetPools().Despawn(this.items[index]);
+            }
+        }
+
+        public virtual int IndexOf<T>(T component) where T : WindowObject {
+            for (int i = 0; i < this.items.Count; ++i) {
+                if (this.items[i] == component) return i;
+            }
+            return -1;
+        }
+
+        public struct DefaultParameters : IListClosureParameters {
+
+            public int index { get; set; }
+
+        }
+
+        public virtual void ForEach<T>(System.Action<T, DefaultParameters> onItem) where T : WindowComponent {
+            
+            this.ForEach(onItem, new DefaultParameters());
+
+        }
+
+        public virtual void ForEach<T, TClosure>(System.Action<T, TClosure> onItem, TClosure closure) where T : WindowComponent where TClosure : IListClosureParameters {
+            
+            for (int i = 0; i < this.Count; ++i) {
+
+                closure.index = i;
+                if (this.items[i] is T item) onItem.Invoke(item, closure);
+                
+            }
+            
+        }
+
+        public virtual void SetItems<T>(int count, System.Action<T, DefaultParameters> onItem, System.Action<DefaultParameters, bool> onComplete = null) where T : WindowComponent {
+            
+            this.SetItems(count, this.source, onItem, new DefaultParameters(), onComplete);
+            
+        }
+
+        public virtual void SetItems<T, TClosure>(int count, System.Action<T, TClosure> onItem, TClosure closure, System.Action<TClosure, bool> onComplete = null) where T : WindowComponent where TClosure : IListClosureParameters {
+            
+            this.SetItems(count, this.source, onItem, closure, onComplete);
+            
+        }
+
+        public struct ListClosureAPI<TClosure> {
+
+            internal ListBaseComponent list;
+            internal TClosure state;
+
+            public struct Parameters<T> : IListClosureParameters {
+                
+                public int index { get; set; }
+                public TClosure data;
+                internal System.Action<T, Parameters<T>> onItem;
+                internal System.Action<Parameters<T>, bool> onComplete;
+
+            }
+
+            public void SetItems<T>(int count, System.Action<T, Parameters<T>> onItem, System.Action<Parameters<T>, bool> onComplete = null) where T : WindowComponent {
+                
+                this.SetItems(count, this.list.source, onItem, onComplete);
+                
+            }
+
+            public void SetItems<T>(int count, Resource source, System.Action<T, Parameters<T>> onItem, System.Action<Parameters<T>, bool> onComplete) where T : WindowComponent {
+                
+                this.list.SetItems<T, Parameters<T>>(count, source, static (item, parameters) => {
+                    parameters.onItem?.Invoke(item, parameters);
+                }, new Parameters<T>() {
+                    data = this.state,
+                    onItem = onItem,
+                    onComplete = onComplete,
+                }, static (parameters, result) => {
+                    parameters.onComplete?.Invoke(parameters, result);
+                });
+
+            }
+
+            public void AddItem<T>(System.Action<T, Parameters<T>> onComplete) where T : WindowComponent {
+
+                this.list.AddItemInternal<T, Parameters<T>>(this.list.source, new Parameters<T>() {
+                    data = this.state,
+                    onItem = onComplete,
+                }, static (item, parameters) => {
+                    parameters.onItem.Invoke(item, parameters);
+                });
+
+            }
+
+            public void AddItem<T>(Resource source, System.Action<T, Parameters<T>> onComplete) where T : WindowComponent {
+
+                this.list.AddItemInternal<T, Parameters<T>>(source, new Parameters<T>() {
+                    data = this.state,
+                    onItem = onComplete,
+                }, static (item, parameters) => {
+                    parameters.onItem.Invoke(item, parameters);
+                });
+
+            }
+
+            public void ForEach<T>(System.Action<T, Parameters<TClosure>> onItem) where T : WindowComponent {
+                
+                for (int i = 0; i < this.list.Count; ++i) {
+                    if (this.list.items[i] is T item) {
+                        var parameters = new Parameters<TClosure>();
+                        parameters.data = this.state;
+                        parameters.index = i;
+                        onItem.Invoke(item, parameters);
+                    }
+                }
+                
+            }
+
+        }
+
+        new public ListClosureAPI<T> Closure<T>(T closure) {
+            return new ListClosureAPI<T>() {
+                list = this,
+                state = closure,
+            };
+        }
+
+        private bool isLoadingRequest = false;
+        public virtual void SetItems<T, TClosure>(int count, Resource source, System.Action<T, TClosure> onItem, TClosure closure, System.Action<TClosure, bool> onComplete) where T : WindowComponent where TClosure : IListClosureParameters {
+
+            if (this.isLoadingRequest == true) {
+
+                onComplete?.Invoke(closure, false);
+                return;
+
+            }
+            
+            if (count == this.Count) {
+
+                for (int i = 0; i < this.Count; ++i) {
+
+                    closure.index = i;
+                    onItem.Invoke((T)this.items[i], closure);
+                    
+                }
+
+                if (onComplete != null) onComplete.Invoke(closure, true);
+
+            } else {
+
+                var delta = count - this.Count;
+                if (delta > 0) {
+
+                    for (int i = 0; i < this.Count; ++i) {
+
+                        closure.index = i;
+                        onItem.Invoke((T)this.items[i], closure);
+                    
+                    }
+                    this.Emit(delta, source, onItem, closure, onComplete);
+
+                } else {
+                    
+                    this.RemoveRange(this.Count + delta, this.Count);
+                    for (int i = 0; i < this.Count; ++i) {
+                    
+                        closure.index = i;
+                        onItem.Invoke((T)this.items[i], closure);
+                    
+                    }
+                    if (onComplete != null) onComplete.Invoke(closure, true);
+                    
+                }
+
+            }
+
+            for (int i = 0; i < this.componentModules.modules.Length; ++i) {
+
+                var module = this.componentModules.modules[i] as ListComponentModule;
+                if (module == null) continue;
+                
+                module.OnSetItems();
+
+            }
+
+        }
+
+        private struct EmitClosure<T, TClosure> : IListClosureParameters where T : WindowComponent where TClosure : IListClosureParameters {
+
+            public int index { get; set; }
+            public ListBaseComponent list;
+            public int requiredCount;
+            public System.Action<T, TClosure> onItem;
+            public System.Action<TClosure, bool> onComplete;
+            public TClosure data;
+            public System.Func<TClosure, TClosure> onClosure;
+            public int offset;
+            public int count;
+
+        }
+        private void Emit<T, TClosure>(int count, Resource source, System.Action<T, TClosure> onItem, TClosure closure, System.Action<TClosure, bool> onComplete = null, System.Func<TClosure, TClosure> onClosure = null) where T : WindowComponent where TClosure : IListClosureParameters {
+
+            if (count == 0) {
+                
+                if (onComplete != null) onComplete.Invoke(closure, true);
+                this.isLoadingRequest = false;
+                return;
+
+            }
+            
+            var offset = this.Count;
+            
+            var closureInner = new EmitClosure<T, TClosure>();
+            closureInner.data = closure;
+            closureInner.onItem = onItem;
+            closureInner.onComplete = onComplete;
+            closureInner.list = this;
+            closureInner.onClosure = onClosure;
+            closureInner.offset = offset;
+            closureInner.count = count;
+            
+            this.isLoadingRequest = true;
+            
+            var resources = WindowSystem.GetResources();
+            resources.LoadAsync<T, EmitClosure<T, TClosure>>(this, closureInner, source, static (asset, innerClosure) => {
+
+                for (int i = 0; i < innerClosure.count; ++i) {
+
+                    var index = i + innerClosure.offset;
+                    innerClosure.index = index;
+                    
+                    var data = new AddItemClosure<T, EmitClosure<T, TClosure>>() {
+                        data = innerClosure,
+                        component = innerClosure.list,
+                    };
+                    var instance = ListBaseComponent.SetupLoadedAsset(asset, data);
+                    innerClosure.data.index = innerClosure.index;
+                    if (innerClosure.onClosure != null) innerClosure.data = innerClosure.onClosure.Invoke(innerClosure.data);
+                    innerClosure.onItem.Invoke(instance, innerClosure.data);
+                    
+                }
+                
+                if (innerClosure.onComplete != null) innerClosure.onComplete.Invoke(innerClosure.data, true);
+                innerClosure.list.isLoadingRequest = false;
+                
+            });
+
+        }
+        
+        private void NotifyModulesComponentAdded(WindowComponent component) {
+            
+            foreach (var module in this.componentModules.modules) {
+            
+                (module as ListComponentModule)?.OnComponentAdded(component);
+                
+            }
+            
+        }
+        
+        private void NotifyModulesComponentRemoved(WindowComponent component) {
+            
+            foreach (var module in this.componentModules.modules) {
+                
+                (module as ListComponentModule)?.OnComponentRemoved(component);
+                
+            }
+            
+        }
+
+    }
+
+}

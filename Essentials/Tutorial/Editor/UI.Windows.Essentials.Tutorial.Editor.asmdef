@@ -1,0 +1,21 @@
+{
+    "name": "UI.Widgets.Essentials.Tutorial.Editor",
+    "rootNamespace": "EgorLin.UIWidgets",
+    "references": [
+        "UI.Widgets.Essentials.Tutorial",
+        "UI.Widgets.Editor",
+        "UI.Widgets",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

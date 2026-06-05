@@ -1,0 +1,731 @@
+﻿using System.Collections;
+using EgorLin.UIWidgets.Attirbutes;
+using EgorLin.UIWidgets.Components.Basic.Base;
+using EgorLin.UIWidgets.Components.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace EgorLin.UIWidgets.Components.Basic {
+    public interface IValueFormat {
+
+        string GetValue(double value);
+
+    }
+
+    public enum SourceValue {
+
+        Digits = 0,
+        Seconds,
+        Milliseconds,
+        Percent,
+
+    }
+
+    public enum TimeValue {
+
+        Milliseconds,
+        Seconds,
+        Minutes,
+        Hours,
+        Days,
+
+    }
+
+    public enum TimeResult {
+
+        None = 0,
+        TimeMS,
+        TimeHM,
+        TimeHMS,
+        TimeDHMS,
+        TimeMSmi,
+        TimeHMSmi,
+        TimeDHMSmi,
+
+    }
+
+    public interface ITextFormatter {
+
+        string Format(double value, string format);
+
+    }
+        
+    public struct TextFormatResolver : System.IEquatable<TextFormatResolver> {
+
+        public System.IFormatProvider provider;
+        public ITextFormatter customFormatter;
+
+        public string Format(double value, string valueFormat) {
+            if (this.customFormatter != null) return this.customFormatter.Format(value, valueFormat);
+            if (this.provider == null) return string.Format(valueFormat, value);
+            return string.Format(this.provider, valueFormat, value);
+        }
+
+        public bool IsValid() {
+            return this.provider != null || this.customFormatter != null;
+        }
+
+        public bool Equals(TextFormatResolver other) {
+            return Equals(this.provider, other.provider) && Equals(this.customFormatter, other.customFormatter);
+        }
+
+        public override bool Equals(object obj) {
+            return obj is TextFormatResolver other && this.Equals(other);
+        }
+
+        public override int GetHashCode() {
+            return System.HashCode.Combine(this.provider, this.customFormatter);
+        }
+
+    }
+
+    public partial class TextComponent : GenericComponent, ISearchComponentByTypeEditor, ISearchComponentByTypeSingleEditor {
+
+        [RequiredReference]
+        public UnityEngine.UI.Graphic graphics;
+        private TimeResultStrings timeResultStrings = new TimeResultStrings() {
+            millisecondsString = @"",
+            secondsString = @"ss",
+            minutesString = @"mm\:",
+            minutesStringEnd = @"mm",
+            hoursString = @"hh\:",
+            daysString = @"d\d\ ",
+        };
+        private ValueData lastValueData;
+        private ValueFormat valueFormat;
+
+        System.Type ISearchComponentByTypeEditor.GetSearchType() {
+            return typeof(TextComponentModule);
+        }
+
+        IList ISearchComponentByTypeSingleEditor.GetSearchTypeArray() {
+            return this.componentModules.modules;
+        }
+
+        internal enum CacheLayer {
+            Data  = 1 << 0,
+            Bytes = 1 << 1,
+            Value = 1 << 2,
+        }
+
+        public struct TimeFormatFromSeconds : IValueFormat {
+
+            public string format;
+
+            public string GetValue(double value) {
+
+                var ts = System.TimeSpan.FromSeconds(value);
+                return ts.ToString(this.format);
+
+            }
+
+        }
+
+        public struct TimeFormatFromMilliseconds : IValueFormat {
+
+            public string format;
+
+            public string GetValue(double value) {
+
+                var ts = System.TimeSpan.FromMilliseconds(value);
+                return ts.ToString(this.format);
+
+            }
+
+        }
+
+        public readonly struct TimeShort {
+
+            private readonly System.TimeSpan timeSpan;
+            private readonly TimeResultStrings timeResultStrings;
+
+            public TimeShort(double value, TimeResultStrings timeResultStrings, SourceValue sourceValue) {
+
+                this.timeResultStrings = timeResultStrings;
+                this.timeSpan = default;
+
+                switch (sourceValue) {
+
+                    case SourceValue.Seconds:
+                        this.timeSpan = System.TimeSpan.FromSeconds(value);
+                        break;
+
+                    case SourceValue.Milliseconds:
+                        this.timeSpan = System.TimeSpan.FromMilliseconds(value);
+                        break;
+
+                }
+
+            }
+
+            public string GetShortestString(TimeResult shortestVariant, TimeResult sourceVariant) {
+
+                var str = string.Empty;
+                switch (shortestVariant) {
+
+                    case TimeResult.TimeMSmi: {
+                        var s = TimeResult.TimeMSmi;
+                        if (s <= sourceVariant) shortestVariant = s;
+                        if (this.timeSpan.TotalHours >= 1d) {
+                            goto case TimeResult.TimeHMSmi;
+                        }
+                    }
+                        break;
+
+                    case TimeResult.TimeHMSmi: {
+                        var s = TimeResult.TimeHMSmi;
+                        if (s <= sourceVariant) shortestVariant = s;
+                        if (this.timeSpan.TotalDays >= 1d) {
+                            goto case TimeResult.TimeDHMSmi;
+                        }
+                    }
+                        break;
+
+                    case TimeResult.TimeDHMSmi: {
+                        var s = TimeResult.TimeDHMSmi;
+                        if (s <= sourceVariant) shortestVariant = s;
+                        var format = new TimeFormat(this.timeResultStrings, TimeResult.TimeDHMSmi);
+                        str = format.GetString();
+                        return str;
+                    }
+
+                    case TimeResult.TimeMS: {
+                        var s = TimeResult.TimeMS;
+                        if (s <= sourceVariant) shortestVariant = s;
+                        if (this.timeSpan.TotalHours >= 1d) {
+                            goto case TimeResult.TimeHMS;
+                        }
+                    }
+                        break;
+
+                    case TimeResult.TimeHMS: {
+                        var s = TimeResult.TimeHMS;
+                        if (s <= sourceVariant) shortestVariant = s;
+                        if (this.timeSpan.TotalDays >= 1d) {
+                            goto case TimeResult.TimeDHMS;
+                        }
+                    }
+                        break;
+
+                    case TimeResult.TimeDHMS: {
+                        var s = TimeResult.TimeDHMS;
+                        if (s <= sourceVariant) shortestVariant = s;
+                        var format = new TimeFormat(this.timeResultStrings, TimeResult.TimeDHMS);
+                        str = format.GetString();
+                        return str;
+                    }
+
+                }
+
+                {
+                    var format = new TimeFormat(this.timeResultStrings, shortestVariant);
+                    str = format.GetString();
+                }
+                return str;
+
+            }
+
+        }
+
+        public readonly struct TimeFormat {
+
+            private readonly TimeResultStrings timeResultStrings;
+            private readonly TimeResult result;
+
+            public TimeFormat(TimeResultStrings timeResultStrings, TimeResult result) {
+
+                this.timeResultStrings = timeResultStrings;
+                this.result = result;
+
+            }
+
+            public string GetString() {
+
+                var ts = this.timeResultStrings;
+                var str = string.Empty;
+                switch (this.result) {
+                    case TimeResult.TimeMS:
+                        str = ts.minutesString + ts.secondsString;
+                        break;
+
+                    case TimeResult.TimeHM:
+                        str = ts.hoursString + ts.minutesStringEnd;
+                        break;
+
+                    case TimeResult.TimeHMS:
+                        str = ts.hoursString + ts.minutesString + ts.secondsString;
+                        break;
+
+                    case TimeResult.TimeDHMS:
+                        str = ts.daysString + ts.hoursString + ts.minutesString + ts.secondsString;
+                        break;
+
+                    case TimeResult.TimeMSmi:
+                        str = ts.minutesString + ts.secondsString + ts.millisecondsString;
+                        break;
+
+                    case TimeResult.TimeHMSmi:
+                        str = ts.hoursString + ts.minutesString + ts.secondsString;
+                        break;
+
+                    case TimeResult.TimeDHMSmi:
+                        str = ts.daysString + ts.hoursString + ts.minutesString + ts.secondsString;
+                        break;
+                }
+
+                return str;
+
+            }
+
+        }
+
+        [System.Serializable]
+        public struct TimeResultStrings {
+
+            public string millisecondsString;
+            public string secondsString;
+            public string minutesString;
+            public string minutesStringEnd;
+            public string hoursString;
+            public string daysString;
+
+        }
+
+        public readonly unsafe struct FormatTimeString {
+
+            private readonly string str;
+            private readonly string format;
+
+            public FormatTimeString(string format, string str) {
+
+                var size = str.Length * 2;
+                var newStr = stackalloc char[size];
+                var k = 0;
+                for (var i = 0; i < str.Length; ++i) {
+
+                    newStr[k] = '\\';
+                    newStr[k + 1] = str[i];
+
+                    k += 2;
+
+                }
+
+                this.format = format;
+                this.str = new string(newStr);
+
+            }
+
+            public string GetValue() {
+
+                return string.Format(this.format, this.str);
+
+            }
+
+        }
+
+        [System.Serializable]
+        public struct ValueData {
+
+            public bool Equals(ValueData other) {
+
+                return this.isCreated == other.isCreated &&
+                       this.sourceValue == other.sourceValue &&
+                       this.timeValueResult == other.timeValueResult &&
+                       this.timeShortestVariant == other.timeShortestVariant &&
+                       this.value.Equals(other.value);
+
+            }
+
+            public override bool Equals(object obj) {
+                return obj is ValueData other && this.Equals(other);
+            }
+
+            public override int GetHashCode() {
+                unchecked {
+                    var hashCode = this.value.GetHashCode();
+                    hashCode = (hashCode * 397) ^ (int)this.sourceValue;
+                    hashCode = (hashCode * 397) ^ (int)this.timeValueResult;
+                    hashCode = (hashCode * 397) ^ (int)this.timeShortestVariant;
+                    return hashCode;
+                }
+            }
+
+            public double value;
+            public SourceValue sourceValue;
+            public TimeResult timeValueResult;
+            public TimeResult timeShortestVariant;
+            public bool isCreated;
+
+            public static bool operator ==(ValueData v1, ValueData v2) {
+
+                return v1.Equals(v2);
+
+            }
+
+            public static bool operator !=(ValueData v1, ValueData v2) {
+
+                return !(v1 == v2);
+
+            }
+
+        }
+
+        internal override void OnDeInitInternal() {
+
+            base.OnDeInitInternal();
+
+            this.ResetInstance();
+
+        }
+
+        private void ResetInstance() {
+
+            this.lastValueData = default;
+            this.lastData = default;
+            this.lastBytesText = default;
+
+            #if UNITY_LOCALIZATION_SUPPORT
+            if (this.lastLocalizationKey != null) {
+                this.lastLocalizationKey.StringChanged -= this.OnLocalizationStringChanged;
+                this.lastLocalizationKey = null;
+            }
+            #endif
+
+        }
+
+        public void SetColor(Color color) {
+
+            if (this.graphics == null) {
+                return;
+            }
+
+            this.graphics.color = color;
+            
+            this.ForEachModule<TextComponentModule, Color>(color, static (c, state) => c.OnSetColor(state));
+
+        }
+
+        public Color GetColor() {
+
+            if (this.graphics == null) {
+                return Color.white;
+            }
+
+            return this.graphics.color;
+
+        }
+
+        public void SetTimeResultString(TimeValue timeValue, FormatTimeString str) {
+
+            switch (timeValue) {
+                case TimeValue.Milliseconds:
+                    this.timeResultStrings.millisecondsString = str.GetValue();
+                    break;
+
+                case TimeValue.Seconds:
+                    this.timeResultStrings.secondsString = str.GetValue();
+                    break;
+
+                case TimeValue.Minutes:
+                    this.timeResultStrings.minutesString = str.GetValue();
+                    break;
+
+                case TimeValue.Hours:
+                    this.timeResultStrings.hoursString = str.GetValue();
+                    break;
+
+                case TimeValue.Days:
+                    this.timeResultStrings.daysString = str.GetValue();
+                    break;
+            }
+
+        }
+
+        private struct ValueFormat : System.IEquatable<ValueFormat> {
+
+            public TextFormatResolver provider;
+            public string valueFormat;
+
+            public ValueFormat(TextFormatResolver provider, string valueFormat) {
+                this.provider = provider;
+                this.valueFormat = valueFormat;
+            }
+
+            public bool Equals(ValueFormat other) {
+                return this.provider.Equals(other.provider) == true && this.valueFormat == other.valueFormat;
+            }
+
+            public override bool Equals(object obj) {
+                return obj is ValueFormat other && this.Equals(other);
+            }
+
+            public override int GetHashCode() {
+                return System.HashCode.Combine(this.provider, this.valueFormat);
+            }
+
+            public static bool operator ==(ValueFormat left, ValueFormat right) {
+                return left.Equals(right);
+            }
+
+            public static bool operator !=(ValueFormat left, ValueFormat right) {
+                return !(left == right);
+            }
+
+            public string Format(double value) {
+                return this.provider.Format(value, this.valueFormat);
+            }
+
+            public bool IsValid() {
+                return this.provider.IsValid() == true || string.IsNullOrEmpty(this.valueFormat) == false;
+            }
+
+        }
+
+        private string GetFormatTimeString(TimeResultStrings ts, TimeResult result) {
+
+            return new TimeFormat(ts, result).GetString();
+
+        }
+
+        internal void ResetLastCacheOther(CacheLayer layer) {
+            this.ResetLastCache(~layer);
+        }
+
+        internal void ResetLastCache(CacheLayer layer) {
+            if ((layer & CacheLayer.Data) != 0) this.lastData = default;
+            if ((layer & CacheLayer.Bytes) != 0) this.lastBytesText = default;
+            if ((layer & CacheLayer.Value) != 0) this.lastValueData = default;
+        }
+
+        public bool SetValueFormat(string format) {
+            var f = new ValueFormat(this.valueFormat.provider, format);
+            if (this.valueFormat == f) return false;
+            this.valueFormat = f;
+            this.lastValueData = default;
+            return true;
+        }
+        
+        public bool SetValueFormat(TextFormatResolver provider, string format) {
+            var f = new ValueFormat(provider, format);
+            if (this.valueFormat == f) return false;
+            this.valueFormat = f;
+            this.lastValueData = default;
+            return true;
+        }
+
+        public void SetValue(double value, SourceValue sourceValue = SourceValue.Digits, TimeResult timeValueResult = TimeResult.None, TimeResult timeShortestVariant = TimeResult.None) {
+
+            if (this.SetValue_INTERNAL(value, out var strFormat, sourceValue, timeValueResult, timeShortestVariant) == true) {
+
+                var prevData = this.lastValueData;
+                this.ForEachModule<TextComponentModule, System.ValueTuple<double, double, SourceValue, string>>((prevData.value, value, sourceValue, strFormat), static (c, state) => c.OnSetValue(state.Item1, state.Item2, state.Item3, state.Item4));
+                this.ForEachModule<TextComponentModule, System.ValueTuple<double, SourceValue, TimeResult, TimeResult>>((value, sourceValue, timeValueResult, timeShortestVariant), static (c, state) => c.SetValue(state.Item1, state.Item2, state.Item3, state.Item4));
+
+            }
+            
+        }
+
+        internal bool SetValue_INTERNAL(double value, out string strFormat, SourceValue sourceValue = SourceValue.Digits, TimeResult timeValueResult = TimeResult.None, TimeResult timeShortestVariant = TimeResult.None) {
+
+            this.ResetLastCacheOther(CacheLayer.Value);
+
+            switch (sourceValue) {
+                case SourceValue.Percent:
+                case SourceValue.Digits:
+                    break;
+
+                case SourceValue.Seconds:
+                    value = System.Math.Floor(value);
+                    break;
+
+                case SourceValue.Milliseconds:
+                    value = System.Math.Floor(value * 1000d) / 1000d;
+                    break;
+            }
+            
+            var currentData = new ValueData() {
+                value = value,
+                sourceValue = sourceValue,
+                timeValueResult = timeValueResult,
+                timeShortestVariant = timeShortestVariant,
+                isCreated = true,
+            };
+            if (this.lastValueData == currentData) {
+                strFormat = default;
+                return false;
+            }
+
+            this.lastValueData = currentData;
+
+            strFormat = default;
+            if (sourceValue == SourceValue.Milliseconds || sourceValue == SourceValue.Seconds) {
+                if (timeShortestVariant > TimeResult.None && timeShortestVariant < timeValueResult) {
+                    var ts = new TimeShort(value, this.timeResultStrings, sourceValue);
+                    strFormat = ts.GetShortestString(timeShortestVariant, timeValueResult);
+                } else {
+                    strFormat = this.GetFormatTimeString(this.timeResultStrings, timeValueResult);
+                }
+            }
+
+            switch (sourceValue) {
+                case SourceValue.Percent:
+                    this.SetText_INTERNAL($"{value.ToString(System.Globalization.CultureInfo.InvariantCulture)}%");
+                    break;
+
+                case SourceValue.Digits:
+                    if (this.valueFormat.IsValid() == true) {
+                        this.SetText_INTERNAL(this.valueFormat.Format(value)); 
+                    } else {
+                        this.SetText_INTERNAL(value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    }
+                    break;
+
+                case SourceValue.Seconds:
+                    this.SetText_INTERNAL(new TimeFormatFromSeconds() { format = strFormat }.GetValue(value));
+                    break;
+
+                case SourceValue.Milliseconds:
+                    this.SetText_INTERNAL(new TimeFormatFromMilliseconds() { format = strFormat }.GetValue(value));
+                    break;
+            }
+
+            return true;
+
+        }
+
+        public string GetText() {
+
+            if (this.graphics is UnityEngine.UI.Text textGraphic) {
+
+                return textGraphic.text;
+
+            }
+            #if TEXTMESHPRO_SUPPORT
+            else if (this.graphics is TMPro.TMP_Text textGraphicTmp) {
+
+                return textGraphicTmp.text;
+
+            }
+            #endif
+
+            return null;
+
+        }
+
+        #if UNITY_LOCALIZATION_SUPPORT
+        public static bool localizationTestMode;
+        private UnityEngine.Localization.LocalizedString lastLocalizationKey;
+        private bool avoidLocalizationUnsubscribe;
+
+        public virtual void SetText(UnityEngine.Localization.LocalizedString key) {
+            
+            if (this.lastLocalizationKey != key) {
+
+                if (this.lastLocalizationKey != null) {
+                    this.lastLocalizationKey.StringChanged -= this.OnLocalizationStringChanged;
+                }
+
+                if (localizationTestMode == true) {
+                    this.OnLocalizationStringChanged($"#{key?.TableEntryReference.Key}#");
+                } else {
+                    this.lastLocalizationKey = key;
+                    this.lastLocalizationKey.StringChanged += this.OnLocalizationStringChanged;
+                    this.lastLocalizationKey.RefreshString();
+                }
+
+            }
+
+        }
+
+        public virtual void SetText(UnityEngine.Localization.LocalizedString key, params object[] args) {
+
+            if (this.lastLocalizationKey != key || args.Length > 0) {
+
+                if (this.lastLocalizationKey != null) {
+                    this.lastLocalizationKey.StringChanged -= this.OnLocalizationStringChanged;
+                }
+
+                if (localizationTestMode == true) {
+                    this.OnLocalizationStringChanged($"#{key?.TableEntryReference.Key}#");
+                } else {
+                    this.lastLocalizationKey = key;
+                    this.lastLocalizationKey.Arguments = args;
+                    this.lastLocalizationKey.StringChanged += this.OnLocalizationStringChanged;
+                    this.lastLocalizationKey.RefreshString();
+                }
+
+            }
+
+        }
+
+        private void OnLocalizationStringChanged(string text) {
+
+            this.avoidLocalizationUnsubscribe = true;
+            this.SetText(text);
+            this.avoidLocalizationUnsubscribe = false;
+
+        }
+        #endif
+
+        public virtual void SetText(char[] charArray) {
+            
+            if (this.graphics is UnityEngine.UI.Text textGraphic) {
+
+                textGraphic.text = new string(charArray);
+
+            }
+            #if TEXTMESHPRO_SUPPORT
+            else if (this.graphics is TMPro.TMP_Text textGraphicTmp) {
+
+                textGraphicTmp.SetCharArray(charArray);
+
+            }
+            #endif
+            
+        }
+
+        public virtual void SetText(string text) {
+
+            if (this.lastData.s0 == text) {
+                return;
+            }
+
+            var prevText = this.lastData;
+            this.lastData = new LastDataCache() { s0 = text };
+            this.lastValueData = default;
+
+            this.ForEachModule<TextComponentModule, System.ValueTuple<string, string>>((prevText.s0, text), static (c, state) => c.OnSetText(state.Item1, state.Item2));
+            text = this.ForEachModule<TextComponentModule, string>(text, static (c, state) => c.SetText(state));
+            
+            this.SetText_INTERNAL(text);
+
+        }
+
+        internal void SetText_INTERNAL(string text) {
+            
+            if (this.graphics is UnityEngine.UI.Text textGraphic) {
+
+                textGraphic.text = text;
+
+            }
+            #if TEXTMESHPRO_SUPPORT
+            else if (this.graphics is TMPro.TMP_Text textGraphicTmp) {
+
+                textGraphicTmp.text = text;
+
+            }
+            #endif
+
+        }
+
+        public override void ValidateEditor() {
+
+            base.ValidateEditor();
+
+            if (this.graphics == null) this.graphics = this.GetComponent<Graphic>();
+
+        }
+
+    }
+
+}
