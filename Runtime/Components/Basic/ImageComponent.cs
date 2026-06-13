@@ -269,7 +269,7 @@ namespace EgorLin.UIWidgets.Components.Basic {
             };
                 
             var results = PoolList<ImageComponentModule>.Spawn();
-            this.GetModules(results);
+            this.GetModules(results.Value);
             if (results.Count > 0) {
                 var counter = PoolClass<Counter>.Spawn();
                 counter.value = results.Count;
@@ -303,7 +303,7 @@ namespace EgorLin.UIWidgets.Components.Basic {
             };
                 
             var results = PoolList<ImageComponentModule>.Spawn();
-            this.GetModules(results);
+            this.GetModules(results.Value);
             if (results.Count > 0) {
                 var counter = PoolClass<Counter>.Spawn();
                 counter.value = results.Count;

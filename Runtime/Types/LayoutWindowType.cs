@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using EgorLin.Keys.Ids;
-using EgorLin.Keys.Selectors.Assets;
 using EgorLin.UIWidgets.Attirbutes;
 using EgorLin.UIWidgets.Components.Base;
 using EgorLin.UIWidgets.Core;
@@ -10,6 +9,7 @@ using EgorLin.UIWidgets.Core.Layouts;
 using EgorLin.UIWidgets.Core.TargetFilters;
 using EgorLin.UIWidgets.Modules;
 using EgorLin.UIWidgets.Pools;
+using EgorLin.UIWidgets.Results;
 using EgorLin.UIWidgets.SafeArea;
 using EgorLin.UIWidgets.Utilities;
 using UnityEngine;
@@ -153,6 +153,45 @@ namespace EgorLin.UIWidgets.Types {
             return null;
 
         }
+        
+        public WindowLayoutElement GetLayoutElement(KeyId keyId)
+        {
+            for (int i = 0; i < windowLayoutInstance.layoutElements.Length; ++i)
+            {
+                if (windowLayoutInstance.layoutElements[i].KeySelector.ID == keyId)
+                {
+                    return windowLayoutInstance.layoutElements[i];
+                }
+            }
+
+            return null;
+        }
+        
+        public bool GetLayoutComponent<T>(out T component, KeyId keyId) where T : WindowComponent
+        {
+            var globalTag = -1;
+            
+            for (var i = 0; i < windowLayoutInstance.layoutElements.Length; ++i)
+            {
+                if (windowLayoutInstance.layoutElements[i].KeySelector.ID == keyId)
+                {
+                    globalTag = windowLayoutInstance.layoutElements[i].tagId;
+                }
+            }
+            
+            for (var i = 0; i < components.Length; ++i)
+            {
+                var comp = components[i];
+                if (comp.tag == globalTag)
+                {
+                    component = comp.componentInstance as T;
+                    return true;
+                }
+            }
+
+            component = default;
+            return false;
+        }
 
         public bool GetLayoutComponent<T>(out T component, int localTagId) where T : WindowComponent {
 
@@ -211,6 +250,31 @@ namespace EgorLin.UIWidgets.Types {
             component = default;
             return false;
 
+        }
+        
+        public void FillLayoutComponents<T>(List<ResultLayoutComponent<T>> result) where T : WindowComponent
+        {
+            using var foundComponents = PoolIntHashMap<T>.Spawn();
+            
+            for (var indexComponent = 0; indexComponent < components.Length; ++indexComponent)
+            {
+                var comp = components[indexComponent];
+                
+                if (comp.componentInstance is T instance)
+                {
+                    foundComponents.Add(comp.tag, instance, out _);
+                }
+            }
+
+            for (var indexElement = 0; indexElement < windowLayoutInstance.layoutElements.Length; ++indexElement)
+            {
+                var layoutElement = windowLayoutInstance.layoutElements[indexElement];
+                
+                if (foundComponents.TryGetValue(layoutElement.tagId, out var component))
+                {
+                    result.Add(new ResultLayoutComponent<T>(component, layoutElement.KeySelector.ID));
+                }
+            }
         }
 
         public void Unload(LayoutWindowType windowInstance) {
@@ -573,12 +637,30 @@ namespace EgorLin.UIWidgets.Types {
             return currentItem.GetLayoutComponent(out component, localTagId);
 
         }
+        
+        public bool GetLayoutComponent<T>(out T component, KeyId keyId) where T : WindowComponent
+        {
+            var currentItem = layouts.GetActive();
+            return currentItem.GetLayoutComponent(out component, keyId);
+        }
+        
+        public void FillLayoutComponents<T>(List<ResultLayoutComponent<T>> result) where T : WindowComponent
+        {
+            var currentItem = layouts.GetActive();
+            currentItem.FillLayoutComponents(result);
+        }
 
         public WindowLayoutElement GetLayoutElement(int localTagId) {
 
             var currentItem = this.layouts.GetActive();
             return currentItem.GetLayoutElement(localTagId);
 
+        }
+        
+        public WindowLayoutElement GetLayoutElement(KeyId keyId)
+        {
+            var currentItem = layouts.GetActive();
+            return currentItem.GetLayoutElement(keyId);
         }
 
         public void ResetRequestedIndexes() {

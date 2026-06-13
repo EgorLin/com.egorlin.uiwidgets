@@ -9,6 +9,7 @@ namespace EgorLin.UIWidgets.Core.Layouts {
         public int tagId;
         public WindowLayout innerLayout;
         public bool hideInScreen;
+        public KeySelector KeySelector;
 
         WindowLayout ILayoutInstance.windowLayoutInstance {
             get;

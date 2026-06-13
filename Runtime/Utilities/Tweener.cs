@@ -1056,7 +1056,8 @@ namespace EgorLin.UIWidgets.Utilities {
 
         public void Stop(object tag, bool ignoreEvents = false) {
 
-	        var list = PoolList<ITween>.Spawn();
+	        using var list = PoolList<ITween>.Spawn();
+	        
             for (int i = this.tweens.Count - 1; i >= 0; --i) {
 
 	            var tw = this.tweens[i];
@@ -1075,8 +1076,6 @@ namespace EgorLin.UIWidgets.Utilities {
 	            list[i].Dispose();
 
             }
-            PoolList<ITween>.Recycle(ref list);
-
         }
 
         private bool Step(ITween tween, float dt) {

@@ -217,19 +217,16 @@ namespace EgorLin.UIWidgets.Components.Base {
 
         public void ForEachModule<T, TState>(TState state, System.Action<T, TState> action) {
 
-            var results = PoolList<T>.Spawn();
-            this.GetModules(results);
+            using var results = PoolList<T>.Spawn();
+            this.GetModules(results.Value);
             foreach (var item in results) action.Invoke(item, state);
-            PoolList<T>.Recycle(results);
-
         }
 
         public TState ForEachModule<T, TState>(TState state, System.Func<T, TState, TState> func) {
 
-            var results = PoolList<T>.Spawn();
-            this.GetModules(results);
+            using var results = PoolList<T>.Spawn();
+            this.GetModules(results.Value);
             foreach (var item in results) state = func.Invoke(item, state);
-            PoolList<T>.Recycle(results);
             return state;
 
         }
