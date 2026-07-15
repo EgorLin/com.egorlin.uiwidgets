@@ -1,4 +1,6 @@
 ﻿using EgorLin.UIWidgets.Components.Basic.Base;
+using EgorLin.UIWidgets.Core;
+using UnityEngine;
 
 namespace EgorLin.UIWidgets.Components.Basic.TextModules {
 
@@ -8,7 +10,6 @@ namespace EgorLin.UIWidgets.Components.Basic.TextModules {
         public string link;
         
         public void OnPointerClick(UnityEngine.EventSystems.PointerEventData eventData) {
-            #if TEXTMESHPRO_SUPPORT
             if (this.textComponent.graphics is TMPro.TMP_Text text) {
                 var index = TMPro.TMP_TextUtilities.FindIntersectingCharacter(text, WindowSystem.GetPointerPosition(), this.GetWindow().workCamera, true);
                 if (index < 0) return;
@@ -17,7 +18,6 @@ namespace EgorLin.UIWidgets.Components.Basic.TextModules {
                     Application.OpenURL(this.link);
                 }
             }
-            #endif
         }
         
     }

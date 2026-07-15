@@ -42,14 +42,11 @@ namespace EgorLin.UIWidgets.Components.Basic {
                 
             }
             
-            #if TEXTMESHPRO_SUPPORT
             if (this.inputField is TMPro.TMP_InputField tmpInputField) {
                 
                 tmpInputField.onValueChanged.AddListener(action);
                 
             }
-            #endif
-            
         }
 
         private void AddEndEditListener(UnityEngine.Events.UnityAction<string> action) {
@@ -60,13 +57,11 @@ namespace EgorLin.UIWidgets.Components.Basic {
                 
             }
             
-            #if TEXTMESHPRO_SUPPORT
             if (this.inputField is TMPro.TMP_InputField tmpInputField) {
                 
                 tmpInputField.onEndEdit.AddListener(action);
                 
             }
-            #endif
             
         }
 
@@ -78,13 +73,11 @@ namespace EgorLin.UIWidgets.Components.Basic {
                 
             }
             
-            #if TEXTMESHPRO_SUPPORT
             if (this.inputField is TMPro.TMP_InputField tmpInputField) {
                 
                 tmpInputField.onValidateInput += this.OnValidateChar;
                 
             }
-            #endif
             
         }
 
@@ -96,13 +89,11 @@ namespace EgorLin.UIWidgets.Components.Basic {
                 
             }
             
-            #if TEXTMESHPRO_SUPPORT
             if (this.inputField is TMPro.TMP_InputField tmpInputField) {
                 
                 tmpInputField.onValueChanged.RemoveListener(action);
                 
             }
-            #endif
             
         }
 
@@ -114,13 +105,11 @@ namespace EgorLin.UIWidgets.Components.Basic {
                 
             }
             
-            #if TEXTMESHPRO_SUPPORT
             if (this.inputField is TMPro.TMP_InputField tmpInputField) {
                 
                 tmpInputField.onEndEdit.RemoveListener(action);
                 
             }
-            #endif
             
         }
 
@@ -132,13 +121,11 @@ namespace EgorLin.UIWidgets.Components.Basic {
                 
             }
             
-            #if TEXTMESHPRO_SUPPORT
             if (this.inputField is TMPro.TMP_InputField tmpInputField) {
                 
                 tmpInputField.onValidateInput -= this.OnValidateChar;
                 
             }
-            #endif
             
         }
 
@@ -180,13 +167,11 @@ namespace EgorLin.UIWidgets.Components.Basic {
                 
             }
             
-            #if TEXTMESHPRO_SUPPORT
             if (this.inputField is TMPro.TMP_InputField tmpInputField) {
 
                 return tmpInputField.isFocused;
 
             }
-            #endif
 
             return false;
 
@@ -201,13 +186,11 @@ namespace EgorLin.UIWidgets.Components.Basic {
                 
             }
             
-            #if TEXTMESHPRO_SUPPORT
             if (this.inputField is TMPro.TMP_InputField tmpInputField) {
 
                 tmpInputField.ActivateInputField();
 
             }
-            #endif
             
         }
 
@@ -246,13 +229,11 @@ namespace EgorLin.UIWidgets.Components.Basic {
                 
             }
             
-            #if TEXTMESHPRO_SUPPORT
             if (this.inputField is TMPro.TMP_InputField tmpInputField) {
 
                 return tmpInputField.text;
 
             }
-            #endif
             
             return null;
 
@@ -268,13 +249,11 @@ namespace EgorLin.UIWidgets.Components.Basic {
                 
             }
             
-            #if TEXTMESHPRO_SUPPORT
             if (this.inputField is TMPro.TMP_InputField tmpInputField) {
 
                 tmpInputField.text = text;
 
             }
-            #endif
 
         }
 
@@ -389,9 +368,7 @@ namespace EgorLin.UIWidgets.Components.Basic {
             base.ValidateEditor();
 
             if (this.inputField == null) this.inputField = this.GetComponent<InputField>();
-            #if TEXTMESHPRO_SUPPORT
             if (this.inputField == null) this.inputField = this.GetComponent<TMPro.TMP_InputField>();
-            #endif
 
         }
 

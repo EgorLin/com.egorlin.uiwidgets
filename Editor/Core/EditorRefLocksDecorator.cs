@@ -32,12 +32,10 @@ namespace EgorLin.UIWidgets.Editor.Core {
 
     }
     
-    #if TEXTMESHPRO_SUPPORT
     [CustomPropertyDrawer(typeof(TMPro.TMP_FontAsset), true)]
     public class TmpFontDrawer : ObjDrawer {
 
     }
-    #endif
     #endif
 
     public struct ObjDrawerCache {

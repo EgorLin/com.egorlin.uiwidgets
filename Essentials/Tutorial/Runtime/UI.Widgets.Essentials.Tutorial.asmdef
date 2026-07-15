@@ -2,6 +2,7 @@
     "name": "UI.Widgets.Essentials.Tutorial",
     "rootNamespace": "EgorLin.UIWidgets",
     "references": [
+        "com.egorlin.keys",
         "UI.Widgets",
         "UnityEngine.UIElementsModule",
         "UnityEngine.UI"

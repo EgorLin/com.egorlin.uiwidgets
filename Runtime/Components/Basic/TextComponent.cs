@@ -600,13 +600,11 @@ namespace EgorLin.UIWidgets.Components.Basic {
                 return textGraphic.text;
 
             }
-            #if TEXTMESHPRO_SUPPORT
             else if (this.graphics is TMPro.TMP_Text textGraphicTmp) {
 
                 return textGraphicTmp.text;
 
             }
-            #endif
 
             return null;
 
@@ -674,13 +672,11 @@ namespace EgorLin.UIWidgets.Components.Basic {
                 textGraphic.text = new string(charArray);
 
             }
-            #if TEXTMESHPRO_SUPPORT
             else if (this.graphics is TMPro.TMP_Text textGraphicTmp) {
 
                 textGraphicTmp.SetCharArray(charArray);
 
             }
-            #endif
             
         }
 
@@ -708,13 +704,11 @@ namespace EgorLin.UIWidgets.Components.Basic {
                 textGraphic.text = text;
 
             }
-            #if TEXTMESHPRO_SUPPORT
             else if (this.graphics is TMPro.TMP_Text textGraphicTmp) {
 
                 textGraphicTmp.text = text;
 
             }
-            #endif
 
         }
 
