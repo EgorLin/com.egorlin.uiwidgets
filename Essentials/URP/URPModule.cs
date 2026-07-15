@@ -1,4 +1,5 @@
 using EgorLin.UIWidgets.Core;
+using EgorLin.UIWidgets.Core.Base;
 using UnityEngine;
 #if UNITY_URP
 using UnityEngine.Rendering.Universal;
