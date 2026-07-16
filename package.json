@@ -4,5 +4,7 @@
   "displayName": "UI Widgets",
   "description": "UI Framework",
   "unity": "6000.3",
-  "dependencies": { }
+  "dependencies": { 
+    "com.egorlin.keys" : "https://github.com/egorlin/com.egorlin.keys.git#1.1.7"
+  }
 }
