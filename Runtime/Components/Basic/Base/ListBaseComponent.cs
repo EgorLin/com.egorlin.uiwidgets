@@ -344,9 +344,9 @@ namespace EgorLin.UIWidgets.Components.Basic.Base {
             if (index < this.items.Count) {
                 this.UnRegisterSubObject(this.items[index]);
                 this.NotifyModulesComponentRemoved(this.items[index]);
+                WindowSystem.GetPools().Despawn(this.items[index]);
                 this.items.RemoveAt(index);
                 this.OnElementsChanged();
-                WindowSystem.GetPools().Despawn(this.items[index]);
             }
         }
 
