@@ -107,6 +107,8 @@ namespace EgorLin.UIWidgets.Core {
         [Space(10f)]
         [Tooltip("Override canvas render mode.")]
         public UIWSRenderMode renderMode;
+        [Tooltip("Override canvas sorting layer.")]
+        public string canvasSortingLayer;
         [Tooltip("Override camera mode. You can change camera mode at runtime.")]
         public UIWSCameraMode cameraMode;
 

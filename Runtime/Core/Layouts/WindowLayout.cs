@@ -81,12 +81,13 @@ namespace EgorLin.UIWidgets.Core.Layouts {
             
         }
 
-        public void SetCanvasOrder(int order) {
-
-            this.order = order;
-            this.canvas.sortingOrder = order;
-            this.canvas.sortingLayerName = WindowSystem.GetSettings().canvas.sortingLayerName;
-
+        public void SetCanvasOrder(int value)
+        {
+            order = value;
+            canvas.sortingOrder = value;
+            canvas.sortingLayerName = string.IsNullOrEmpty(window.preferences.canvasSortingLayer)
+                ? WindowSystem.GetSettings().canvas.sortingLayerName
+                : window.preferences.canvasSortingLayer;
         }
         
         public int GetCanvasOrder() {
